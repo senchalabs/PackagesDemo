@@ -105,6 +105,7 @@ is to include framework code in a workspace into the vcs repo
 <echo file="@{workspacedir}/.gitignore">
 /ext/
 /touch/
+/build/
 </echo>
         </sequential>
     </macrodef>
