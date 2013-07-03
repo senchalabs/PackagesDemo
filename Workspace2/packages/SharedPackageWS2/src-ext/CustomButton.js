@@ -9,6 +9,6 @@ Ext.define("SharedPackageWS2.CustomButton", {
     width: 400,
     handler: function() {
         var shared = new SharedPackageWS2.SharedClass();
-        Ext.Msg.alert("Button Clicked", shared.getSharedText(), Ext.emptyFn);
+        shared.alert();
     }
 });
