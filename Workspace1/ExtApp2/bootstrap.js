@@ -9,7 +9,10 @@ Ext.Loader.addClassPathMappings({
   "Ext": "../ext/src",
   "Ext.rtl.EventObjectImpl": "../ext/src/rtl/EventObject.js",
   "ExtApp1": "app",
-  "ExtApp1.Application": "app/application.js"
+  "ExtApp1.Application": "app/application.js",
+  "ExtPackageWS1.CustomButton": "../packages/ExtPackageWS1/src/CustomButton.js",
+  "SharedPackageWS1.CustomButton": "../packages/SharedPackageWS1/src-ext/CustomButton.js",
+  "SharedPackageWS1.SharedClass": "../packages/SharedPackageWS1/src/SharedClass.js"
 });
 Ext.ClassManager.addNameAlternateMappings({
   "Ext.ux.BoxReorderer": [],
@@ -77,7 +80,10 @@ Ext.ClassManager.addNameAlternateMappings({
   "ExtApp1.Application": [],
   "ExtApp1.controller.Main": [],
   "ExtApp1.view.Main": [],
-  "ExtApp1.view.Viewport": []
+  "ExtApp1.view.Viewport": [],
+  "ExtPackageWS1.CustomButton": [],
+  "SharedPackageWS1.CustomButton": [],
+  "SharedPackageWS1.SharedClass": []
 });
 Ext.ClassManager.addNameAliasMappings({
   "Ext.ux.BoxReorderer": [],
@@ -195,5 +201,12 @@ Ext.ClassManager.addNameAliasMappings({
   "ExtApp1.view.Main": [
     "widget.app-main"
   ],
-  "ExtApp1.view.Viewport": []
+  "ExtApp1.view.Viewport": [],
+  "ExtPackageWS1.CustomButton": [
+    "widget.customButtonExtPackage"
+  ],
+  "SharedPackageWS1.CustomButton": [
+    "widget.customButtonSharedPackage"
+  ],
+  "SharedPackageWS1.SharedClass": []
 });
