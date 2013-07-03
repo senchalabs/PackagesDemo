@@ -8,15 +8,6 @@ repo.  To initialize a repo after an initial git clone operation, run the
             
 Targets:
             
-    [These targets illustrate uses of the "sencha generate" command and 
-     were used to initially create the workspace structures in this repo.]
-
-    create-workspaces       :   creates two predefined workspaces
-    create-apps             :   creates pre-defined applications into the workspaces
-    create-packages         :   creates pre-defined packages into the workspaces
-
-    [These are maintainence targets for the git repo.]
-
     get-frameworks          :   downloads ext and touch from cdn.sencha.com
     install-frameworks      :   downloads and installs ext and touch into the workspaces
 </echo>
@@ -116,47 +107,4 @@ is to include framework code in a workspace into the vcs repo
         <create-workspace-macro workspacedir="${basedir}/Workspace2"/>
     </target>
     
-    
-    <macrodef name="create-apps-macro">
-        <attribute name="workspacedir"/>
-        <sequential>
-            <x-shell dir="@{workspacedir}/ext">
-                sencha generate app ExtApp1 @{workspacedir}/ExtApp1
-                sencha generate app ExtApp2 @{workspacedir}/ExtApp2
-            </x-shell>
-            <x-shell dir="@{workspacedir}/touch">
-                sencha generate app TouchApp1 @{workspacedir}/TouchApp1
-                sencha generate app TouchApp2 @{workspacedir}/TouchApp2
-            </x-shell>
-        </sequential>
-    </macrodef>
-    
-    <target name="create-apps" depends="init">
-        <!--call the above macrodef with the path to the desired workspace-->
-        <create-apps-macro workspacedir="${basedir}/Workspace1"/>
-        <create-apps-macro workspacedir="${basedir}/Workspace2"/>
-    </target>
-
-    <macrodef name="create-packages-macro">
-        <attribute name="workspacedir"/>
-        <attribute name="suffix"/>
-        <sequential>
-            <x-shell dir="@{workspacedir}">
-                sencha generate package ExtPackage@{suffix}
-            </x-shell>
-            <x-shell dir="@{workspacedir}">
-                sencha generate package TouchPackage@{suffix}
-            </x-shell>
-            <x-shell dir="@{workspacedir}">
-                sencha generate package SharedPackage@{suffix}
-            </x-shell>
-        </sequential>
-    </macrodef>
-        
-    <target name="create-packages" depends="init">
-        <!--call the above macrodef with the path to the desired workspace-->
-        <create-packages-macro workspacedir="${basedir}/Workspace1" suffix="WS1"/>
-        <create-packages-macro workspacedir="${basedir}/Workspace2" suffix="WS2"/>
-    </target>
-                
 </project>
