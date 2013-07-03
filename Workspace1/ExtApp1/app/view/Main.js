@@ -20,7 +20,19 @@ Ext.define('ExtApp1.view.Main', {
         region: 'center',
         xtype: 'tabpanel',
         items:[{
-            title: 'Center Tab 1'
+            title: 'Center Tab 1',
+            layout: {
+                type: 'vbox',
+                align: 'center'
+            },
+            items: [
+                {
+                    xtype: 'customButtonExtPackage'
+                },
+                {
+                    xtype: 'customButtonSharedPackage'
+                }
+            ]
         }]
     }]
 });

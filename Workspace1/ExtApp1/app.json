@@ -2,6 +2,8 @@
     "name": "ExtApp1",
 
     "requires": [
+        "ExtPackageWS1",
+        "SharedPackageWS1"
     ],
 
     "id": "abd9fe45-cd64-437a-8154-13fc0fcb7b64"
