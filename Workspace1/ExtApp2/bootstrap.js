@@ -8,8 +8,8 @@ Ext.Loader.addClassPathMappings({
   " Ext.Msg": "../ext/src/window/MessageBox.js",
   "Ext": "../ext/src",
   "Ext.rtl.EventObjectImpl": "../ext/src/rtl/EventObject.js",
-  "ExtApp1": "app",
-  "ExtApp1.Application": "app/application.js",
+  "ExtApp2": "app",
+  "ExtApp2.Application": "app/application.js",
   "ExtPackageWS1.CustomButton": "../packages/ExtPackageWS1/src/CustomButton.js",
   "SharedPackageWS1.CustomButton": "../packages/SharedPackageWS1/src-ext/CustomButton.js",
   "SharedPackageWS1.SharedClass": "../packages/SharedPackageWS1/src/SharedClass.js"
@@ -77,10 +77,10 @@ Ext.ClassManager.addNameAlternateMappings({
     "Ext.ux.StatusBar"
   ],
   "Ext.ux.statusbar.ValidationStatus": [],
-  "ExtApp1.Application": [],
-  "ExtApp1.controller.Main": [],
-  "ExtApp1.view.Main": [],
-  "ExtApp1.view.Viewport": [],
+  "ExtApp2.Application": [],
+  "ExtApp2.controller.Main": [],
+  "ExtApp2.view.Main": [],
+  "ExtApp2.view.Viewport": [],
   "ExtPackageWS1.CustomButton": [],
   "SharedPackageWS1.CustomButton": [],
   "SharedPackageWS1.SharedClass": []
@@ -196,12 +196,12 @@ Ext.ClassManager.addNameAliasMappings({
     "widget.statusbar"
   ],
   "Ext.ux.statusbar.ValidationStatus": [],
-  "ExtApp1.Application": [],
-  "ExtApp1.controller.Main": [],
-  "ExtApp1.view.Main": [
+  "ExtApp2.Application": [],
+  "ExtApp2.controller.Main": [],
+  "ExtApp2.view.Main": [
     "widget.app-main"
   ],
-  "ExtApp1.view.Viewport": [],
+  "ExtApp2.view.Viewport": [],
   "ExtPackageWS1.CustomButton": [
     "widget.customButtonExtPackage"
   ],

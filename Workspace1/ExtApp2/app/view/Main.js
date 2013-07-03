@@ -1,4 +1,4 @@
-Ext.define('ExtApp1.view.Main', {
+Ext.define('ExtApp2.view.Main', {
     extend: 'Ext.container.Container',
     requires:[
         'Ext.tab.Panel',

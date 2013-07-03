@@ -122,7 +122,7 @@ is to include framework code in a workspace into the vcs repo
         <sequential>
             <x-shell dir="@{workspacedir}/ext">
                 sencha generate app ExtApp1 @{workspacedir}/ExtApp1
-                sencha generate app ExtApp1 @{workspacedir}/ExtApp2
+                sencha generate app ExtApp2 @{workspacedir}/ExtApp2
             </x-shell>
             <x-shell dir="@{workspacedir}/touch">
                 sencha generate app TouchApp1 @{workspacedir}/TouchApp1

@@ -1,5 +1,5 @@
-Ext.define('ExtApp1.Application', {
-    name: 'ExtApp1',
+Ext.define('ExtApp2.Application', {
+    name: 'ExtApp2',
 
     extend: 'Ext.app.Application',
 

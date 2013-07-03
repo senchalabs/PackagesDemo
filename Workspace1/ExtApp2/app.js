@@ -8,9 +8,9 @@
 //@require @packageOverrides
 
 Ext.application({
-    name: 'ExtApp1',
+    name: 'ExtApp2',
 
-    extend: 'ExtApp1.Application',
+    extend: 'ExtApp2.Application',
     
     autoCreateViewport: true
 });
