@@ -44,6 +44,27 @@ Ext.define('TouchApp1.view.Main', {
                         posterUrl: 'http://b.vimeocdn.com/ts/261/062/261062119_640.jpg'
                     }
                 ]
+            },
+            {
+                title: 'Customizations',
+                iconCls: 'compose',
+                layout: {
+                    type: 'vbox',
+                    align: 'center'
+                },
+                items: [
+                    {
+                        docked: 'top',
+                        xtype: 'titlebar',
+                        title: 'Custom Components'
+                    },
+                    {
+                        xtype: 'customButtonTouchPackage'
+                    },
+                    {
+                        xtype: 'customButtonSharedPackage'
+                    }
+                ]
             }
         ]
     }
