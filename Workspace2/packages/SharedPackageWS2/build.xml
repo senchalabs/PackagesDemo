@@ -34,4 +34,19 @@
             <target name="-after-build"/>
     -->
 
+    <macrodef name="run-sdk-build">
+        <attribute name="framework"/>
+        <sequential>
+            <antcall target="-build" inheritall="false" inheritrefs="true">
+                <param name="package.framework" value="@{framework}"/>
+                <param name="build.name.prefix" value="${build.dir}/${package.name}-@{framework}"/>
+            </antcall>
+        </sequential>
+    </macrodef>
+
+    <target name="build" depends="init">
+        <run-sdk-build framework="ext"/>
+        <run-sdk-build framework="touch"/>
+    </target>
+
 </project>
