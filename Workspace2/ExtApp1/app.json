@@ -1,0 +1,10 @@
+{
+    "name": "ExtApp1",
+
+    "requires": [
+        "ExtPackageWS2",
+        "SharedPackageWS2"
+    ],
+
+    "id": "6925ef7a-f9a9-4ec6-9103-4bf09d66a1f4"
+}

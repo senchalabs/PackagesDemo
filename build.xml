@@ -1,0 +1,110 @@
+<project name="packages-example" basedir="." default="help">
+
+    <target name="help">
+<echo>
+This is an ant file with targets for initializing / maintaining this example
+repo.  To initialize a repo after an initial git clone operation, run the
+"install-frameworks" target.
+            
+Targets:
+            
+    get-frameworks          :   downloads ext and touch from cdn.sencha.com
+    install-frameworks      :   downloads and installs ext and touch into the workspaces
+</echo>
+    </target>
+    
+    
+    <target name="init">
+        <taskdef resource="com/sencha/ant/antlib.xml"
+                 classpath="${cmd.dir}/sencha.jar"
+                 loaderref="senchaloader"/>
+
+        <taskdef resource="net/sf/antcontrib/antlib.xml"
+                 classpath="${cmd.dir}/lib/ant-contrib-1.0b3.jar"
+                 loaderref="senchaloader"/>
+
+        <property name="ext.zip.url" value="http://cdn.sencha.com/ext/gpl/ext-4.2.1-gpl.zip"/>
+        <property name="touch.zip.url" value="http://cdn.sencha.com/touch/sencha-touch-2.2.1-gpl.zip"/>
+    </target>
+    
+    
+    <target name="get-frameworks" depends="init">
+        <mkdir dir="${basedir}/frameworks"/>
+        <if>
+            <not>
+                <available file="${basedir}/frameworks/ext-4.2.1-gpl.zip"/>
+            </not>
+            <then>
+                <get src="${ext.zip.url}" dest="${basedir}/frameworks/ext-4.2.1-gpl.zip"/>
+            </then>
+        </if>
+        
+        <if>
+            <not>
+                <available file="${basedir}/frameworks/sencha-touch-2.2.1-gpl.zip"/>
+            </not>
+            <then>
+                <get src="${touch.zip.url}" dest="${basedir}/frameworks/sencha-touch-2.2.1-gpl.zip"/>
+            </then>
+        </if>
+        
+        <unzip src="${basedir}/frameworks/ext-4.2.1-gpl.zip" dest="${basedir}/frameworks"/>
+        
+        <!--clean up the nested directory name for ext (remove the build number)-->
+        <move todir="${basedir}/frameworks">
+            <fileset dir="${basedir}/frameworks">
+                <include name="ext-4.2.1.*/**/*"/>
+            </fileset>
+            <mapper type="regexp" from="ext-4\.2\.1\.\d{1,5}(.*)" to="ext-4.2.1\1"/>
+        </move>
+        <delete includeemptydirs="true">
+            <dirset dir="${basedir}/frameworks" includes="ext-4.2.1.*"/>
+        </delete>
+        
+        <unzip src="${basedir}/frameworks/sencha-touch-2.2.1-gpl.zip" dest="${basedir}/frameworks"/>
+    </target>
+    
+    
+    <target name="install-frameworks" 
+            depends="get-frameworks,create-workspaces"/>
+    
+    <macrodef name="create-workspace-macro">
+        <attribute name="workspacedir"/>
+        <sequential>
+        <echo>Creating empty workspace</echo>
+            <x-shell dir="${basedir}">
+                sencha generate workspace @{workspacedir}
+            </x-shell>
+
+            <!--
+            by regenerating the workspace with the -sdk set, it will 
+            copy that sdk to the workspace if it isn't present
+            -->
+            <echo>Adding ext to existing workspace</echo>
+            <x-shell dir="${basedir}/frameworks/ext-4.2.1">
+                sencha generate workspace @{workspacedir}
+            </x-shell>
+
+            <echo>Adding touch to existing workspace</echo>
+            <x-shell dir="${basedir}/frameworks/touch-2.2.1">
+                sencha generate workspace @{workspacedir}
+            </x-shell>
+<!--
+NOTE: this is just for setting up this example repo.  The normal recommendation
+is to include framework code in a workspace into the vcs repo            
+-->
+<echo file="@{workspacedir}/.gitignore">
+/ext/
+/touch/
+/build/
+</echo>
+        </sequential>
+    </macrodef>
+    
+    <target name="create-workspaces" depends="init">
+        <!--call the above macrodef with the path to the desired workspace-->
+        <create-workspace-macro workspacedir="${basedir}/Workspace1"/>
+        <create-workspace-macro workspacedir="${basedir}/Workspace2"/>
+    </target>
+    
+</project>
