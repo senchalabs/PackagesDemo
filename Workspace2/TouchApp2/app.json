@@ -125,6 +125,8 @@
      * List of package names to require for the cmd build process
      */
     "requires": [
+        "SharedPackageWS2",
+        "TouchPackageWS2"
     ],
 
     /**
