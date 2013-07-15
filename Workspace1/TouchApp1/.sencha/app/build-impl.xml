@@ -14,7 +14,11 @@ the target provided here. Doing that can create problems for upgrading to newer
 versions of Cmd so it is not recommended but it will be easier to manage than editing
 this file in most cases.
 -->
-<project>
+<project name="Command">
+    <target name="Build - Testing" description="Create a Testing build of this project" depends="testing, init, build"/>
+    <target name="Build - Production" description="Create a Production build of this project" depends="production, init, build"/>
+    <target name="Build - Native" description="Create a Native build of this project" depends="native, init, build"/>
+
     <!--
     Init-Local
     -->
@@ -42,13 +46,6 @@ this file in most cases.
                 }
             }
         </script>
-
-        <!--
-        initialize the app.build.dir property to the original default
-        this one will be overridden by the new default located in .sencha/app/sencha.cfg
-        if present
-        -->
-        <property name="app.build.dir" location="${workspace.build.dir}"/>
 
     </target>
     <target name="-after-init-local"/>
@@ -98,16 +95,61 @@ this file in most cases.
         
         <x-load-properties file="${app.config.dir}/${args.environment}.properties" required="0"/>
         <x-load-properties file="${app.config.dir}/build.properties" required="1"/>
+
+        <!--
+        initialize the app.build.dir property to the original default
+        this one will be overridden by the new default located in .sencha/app/sencha.cfg
+        if present
+        -->
+        <property name="app.build.dir" location="${workspace.build.dir}"/>
+        <property name="compiler.ref.id" value="app-compiler"/>
     </target>
     <target name="-after-init"/>
     
     <target name="-before-init-default"/>
-    <target name="-init-default"/>
+    <target name="-init-default">
+        <!--
+             This property can be modified to change general build options
+             such as excluding files from the set.  The format expects newlines
+             for each argument, for example:
+             
+             <property name="build.operations"/>
+                   exclude
+                       -namespace=Ext
+             </property>
+        -->
+        <property name="build.operations" value=""/>
+    </target>
     <target name="-after-init-default"/>
     
     <target name="init"
             depends="init-local,find-cmd,-before-init,-init,-after-init,-before-init-default,-init-default,-after-init-default"/>
     
+    <target name="-init-compiler" depends="-init">
+        <x-compile refid="${compiler.ref.id}" dir="${app.dir}" initOnly="true" inheritAll="true">
+            <![CDATA[
+                --ignore=${framework.ignores}
+                require
+                    -source=${app.dir}/app.js
+                    -requires=@overrides
+                    -file=true
+                    -allow-unmet=true
+                and
+                exclude
+                    -all
+                and
+                include
+                    -recursive
+                    -file=${app.dir}/app.js
+                and
+                ${build.operations}
+                and
+                save
+                    app-all
+            ]]>
+        </x-compile>
+    </target>
+
     <!--
     Clean
     -->
@@ -125,32 +167,33 @@ this file in most cases.
     -->
     <target name="-before-sass"/>
     <target name="-sass">
+        <property name="compass.compile.force" value="true"/>
         <x-compass-compile
             trace="true"
-            boring="true"
-            force="true"
+            boring="false"
+            force="${compass.compile.force}"
             dir="${app.sass.dir}"/>
     </target>
     <target name="-after-sass"/>
     <target name="sass" depends="init" unless="skip.sass"
             description="Builds only the SASS files using Compass">
-        <antcall target="-before-sass"/>
-        <antcall target="-sass"/>
-        <antcall target="-after-sass"/>
+        <x-ant-call target="-before-sass"/>
+        <x-ant-call target="-sass"/>
+        <x-ant-call target="-after-sass"/>
     </target>
     
     <!--
     Build Page
     -->
     <target name="-before-page"/>
-    <target name="-page">
+    <target name="-page" depends="-init-compiler">
         <property name="v2deps" value="false"/>
         <property name="args.path" location="."/>
         <property name="args.destination" location="${app.build.dir}"/>
         <property name="args.environment" value="production"/>
         
         <x-script-def name="x-app-build" 
-                      src="${framework.config.dir}/app-build.js">
+                      src="${app.config.dir}/app-build.js">
             <script src="${cmd.config.dir}/ant/JSON.js"/>
             <script src="${cmd.config.dir}/ant/ant-util.js"/>
         </x-script-def>
@@ -161,9 +204,9 @@ this file in most cases.
     <target name="-after-page"/>
     <target name="page" depends="init" unless="skip.page"
             description="Builds only the application's HTML page">
-        <antcall target="-before-page"/>
-        <antcall target="-page"/>
-        <antcall target="-after-page"/>
+        <x-ant-call target="-before-page"/>
+        <x-ant-call target="-page"/>
+        <x-ant-call target="-after-page"/>
     </target>
 
     <target name="-before-run"/>
@@ -189,66 +232,75 @@ this file in most cases.
                 </or>
             </and>
             <then>
-                <antcall target="-before-run"/>
-                <antcall target="-run"/>
-                <antcall target="-after-run"/>
+                <x-ant-call target="-before-run"/>
+                <x-ant-call target="-run"/>
+                <x-ant-call target="-after-run"/>
             </then>
         </if>
     </target>
 
-    <!--
-    Refresh
-    -->
-    <target name="-before-refresh"/>
-    <target name="-refresh">
-        <property name="args.metadatafile" value="${app.dir}/bootstrap.js"/>
-        <property name="args.basepath" value="${app.dir}"/>
-<echo file="${args.metadatafile}">
+    <macrodef name="x-run-bootstrap">
+        <attribute name="file"/>
+        <attribute name="basedir"/>
+        <sequential>
+<echo file="@{file}">
 /**
  * This file is generated by Sencha Cmd and should NOT be edited.  It is 
  * provided to support globbing requires, custom xtypes, and other 
  * metadata-driven class system features 
  */
 </echo>
-        <x-sencha-command>
-            compile
-                --ignore=${framework.ignores}
-                exclude
-                    -tag=core
-                and
-                metadata
-                    +append
-                    --base-path=${args.basepath}
-                    +loader-paths
-                    -jsonp=Ext.Loader.addClassPathMappings
-                    -out=${args.metadatafile}
-                and
-                exclude
-                    -tag=framework
-                and
-                metadata
-                    --base-path=${args.basepath}
-                    +alternates
-                    +append
-                    -out=${args.metadatafile}
-                and
-                metadata
-                    --base-path=${args.basepath}
-                    +alias
-                    +append
-                    -out=${args.metadatafile}
-                and
-                union
-                    -tag=packageOverrides
-                and
-                metadata
-                    --base-path=${args.basepath}
-                    +append
-                    +filenames
-                    -tpl=Ext.Loader.loadScriptFile("{0}", Ext.emptyFn);
-                    -out=${args.metadatafile}
-                    
-        </x-sencha-command>
+            <x-compile refid="${compiler.ref.id}">
+                <![CDATA[
+                    union
+                        -not
+                        -tag=core
+                    and
+                    metadata
+                        +append
+                        --base-path=@{basedir}
+                        +loader-paths
+                        -jsonp=Ext.Loader.addClassPathMappings
+                        -out=@{file}
+                    and
+                    exclude
+                        -tag=framework
+                    and
+                    metadata
+                        --base-path=@{basedir}
+                        +alternates
+                        +append
+                        -out=@{file}
+                    and
+                    metadata
+                        --base-path=@{basedir}
+                        +alias
+                        +append
+                        -out=@{file}
+                    and
+                    union
+                        -tag=overrides
+                    and
+                    metadata
+                        --base-path=@{basedir}
+                        +append
+                        +filenames
+                        -tpl=Ext.Loader.loadScriptFile("{0}", Ext.emptyFn);
+                        -out=@{file}
+                ]]>
+            </x-compile>
+        </sequential>
+    </macrodef>
+
+    <!--
+    Refresh
+    -->
+    <target name="-before-refresh"/>
+    <target name="-refresh" depends="-init-compiler">
+        <property name="args.metadatafile" value="${app.dir}/bootstrap.js"/>
+        <property name="args.basepath" value="${app.dir}"/>
+        <x-run-bootstrap file="${args.metadatafile}"
+                         basedir="${args.basepath}"/>
     </target>
     <target name="-after-refresh"/>
     <target name="refresh"
@@ -264,6 +316,30 @@ this file in most cases.
     <target name="build"
             depends="init,-before-build,-build,-after-build"
             description="Builds the application"/>
+
+    <target name="-watch-impl" depends="-refresh"/>
+    
+    <target name="-before-watch"/>
+    <target name="-watch" depends="Command.build">
+        
+        <x-compass-watch
+            dir="${app.sass.dir}"
+            trace="true"
+            boring="false"
+            force="${compass.compile.force}"
+            fork="true"/>
+        
+        <x-watch compilerRef="${compiler.ref.id}" targets="${watch.targets}"/>
+    </target>
+    <target name="-after-watch"/>
+    <target name="watch">
+        <property name="build.optimize" value=""/>
+        <property name="compass.compile.force" value="false"/>
+        <property name="watch.targets" value="-watch-impl"/>
+        <x-ant-call target="-before-watch"/>
+        <x-ant-call target="-watch"/>
+        <x-ant-call target="-after-watch"/>
+    </target>
 
     <!--
     environment setters
