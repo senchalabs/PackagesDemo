@@ -5,8 +5,8 @@
  * metadata-driven class system features 
  */
 Ext.Loader.addClassPathMappings({
-  " Ext.Msg": "../ext/src/window/MessageBox.js",
   "Ext": "../ext/src",
+  "Ext.Msg": "../ext/src/window/MessageBox.js",
   "Ext.rtl.EventObjectImpl": "../ext/src/rtl/EventObject.js",
   "ExtApp1": "app",
   "ExtApp1.Application": "app/application.js",
