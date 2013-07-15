@@ -14,7 +14,7 @@ the target provided here. Doing that can create problems for upgrading to newer
 versions of Cmd so it is not recommended but it will be easier to manage than editing
 this file in most cases.
 -->
-<project>
+<project name="app-build-impl">
     <!--
     Init-Local
     -->
@@ -83,7 +83,7 @@ this file in most cases.
         <property name="CR" value="&#10;"/>
         
         <x-load-properties file="${app.config.dir}/${args.environment}.properties" required="0"/>
-        <x-load-properties file="${app.config.dir}/build.properties" required="1"/>
+        <x-load-properties file="${app.config.dir}/build.properties" required="0"/>
         
         <if>
             <x-is-true value="${build.compression.yui}"/>
@@ -114,100 +114,13 @@ this file in most cases.
         <x-normalize-path path="${build.dir}/resources" property="image.search.path"/>
                         
         <if>
+            <not>
             <isset property="app.theme"/>
+            </not>
             <then>
-                <property name="build.theme.commands">
-                    and
-                    union
-                        -not
-                        -tag=core
-                    and
-                    metadata
-                        +append
-                        --base-path=${bootstrap.base.path}
-                        +loader-paths
-                        -jsonp=Ext.Loader.addClassPathMappings
-                        -out=${bootstrap.example.js}
-                    and
-                    exclude
-                        -tag=framework
-                    and
-                    include
-                        -namespace=Ext.ux
-                    and
-                    metadata
-                        --base-path=${bootstrap.base.path}
-                        +alternates
-                        +append
-                        -out=${bootstrap.example.js}
-                    and
-                    metadata
-                        --base-path=${bootstrap.base.path}
-                        +alias
-                        +append
-                        -out=${bootstrap.example.js}
-                    and
-                    union
-                        -tag=packageOverrides
-                    and
-                    metadata
-                        --base-path=${bootstrap.base.path}
-                        +append
-                        +filenames
-                        -tpl=Ext.Loader.loadScript("{0}");
-                        -out=${bootstrap.example.js}
-
-                # sass
-
-                    and
-                    restore
-                        page
-                    and
-                    #only set variables for used classes eg. $include-class-name
-                    sass
-                        +class-name-vars
-                        -variable=$image-search-path:'${image.search.path}'
-                        -variable=$theme-name: '${app.theme}' !default
-                        -output=${app.out.scss}
-                    and
-                    include
-                        -all
-                    and
-                    sass
-                        +class-name-vars
-                        +etc
-                        +vars
-                        +rules
-                        -variable=$image-search-path:'${image.search.path}'
-                        -variable=$theme-name: '${app.theme}' !default
-                        -output=${app.example.scss}
-                    and
-                    # include etc and vars from all classes
-                    sass
-                        +etc
-                        +vars
-                        +append
-                        -output=${app.out.scss}
-                    and
-                    restore
-                        page
-                    and
-                    #only include rules from used classes
-                    sass
-                        +rules
-                        +append
-                        -output=${app.out.scss}
-                    and
-                    sass
-                        +ruby
-                        -output=${app.out.ruby}
-                </property>
-            </then>
-            <else>
-                <property name="build.theme.commands" value=""/>
                 <property name="skip.sass" value="true"/>
                 <property name="skip.slice" value="true"/>
-            </else>
+            </then>
         </if>
 
         
@@ -218,6 +131,7 @@ this file in most cases.
         
         <x-verify-app-cmd-ver/>
        
+        <property name="compiler.ref.id" value="app-compiler"/>
     </target>
     <target name="-after-init"/>
 
@@ -264,6 +178,43 @@ this file in most cases.
     </target>
     <target name="-after-init-default"/>
     
+    <target name="-init-compiler" depends="-init">
+        <x-compile refid="${compiler.ref.id}" dir="${app.dir}" initOnly="true" inheritAll="true">
+            <![CDATA[
+                # base build command
+                -options=${build.options}
+                page
+                    -name=full-page
+                    -in=${app.page.file}
+                    -out=${build.page.file}
+                    -classes=${build.classes.name}
+                    -stylesheet=${app.out.css.rel}  
+                    ${build.page.options}
+                and
+                restore
+                    full-page     
+                and
+                require
+                    -source=@page-full-page
+                    -requires=@overrides
+                    -allow-unmet=true
+                and
+                union
+                    -not
+                    -recursive
+                    -tag=page-full-page
+                and
+                save
+                    full-page-overrides
+                and
+                ${build.operations}
+                and
+                save
+                    page
+            ]]>
+        </x-compile>
+    </target>
+    
     <target name="init"
             depends="init-local,find-cmd,-before-init,-init,-after-init,-before-init-default,-init-default,-after-init-default"/>
     
@@ -279,19 +230,140 @@ this file in most cases.
             depends="init,-before-clean,-clean,-after-clean"
             description="Removes all build output produced by the 'build' target"/>
 
+    
+    <target name="-compile-sass" depends="-init-compiler">
+        <x-compile refid="${compiler.ref.id}">
+            <![CDATA[
+                restore
+                    page
+                and
+                #only set variables for used classes eg. $include-class-name
+                sass
+                    +class-name-vars
+                    -variable=$image-search-path:'${image.search.path}'
+                    -variable=$theme-name: '${app.theme}' !default
+                    -output=${app.out.scss}
+                and
+                include
+                    -all
+                and
+                # include etc and vars from all classes
+                sass
+                    +etc
+                    +vars
+                    +append
+                    -output=${app.out.scss}
+                and
+                restore
+                    page
+                and
+                #only include rules from used classes
+                sass
+                    +rules
+                    +append
+                    -output=${app.out.scss}
+                and
+                sass
+                    +ruby
+                    -output=${app.out.ruby}
+            ]]>
+        </x-compile>
+        <!--
+        app.out.css.path is relative to the app output index.html file
+        -->
+        <x-get-relative-path
+            from="${app.dir}"
+            to="${app.out.css}"
+            property="app.out.css.path"
+            />
+      
+<!--update the application's bootstrap.css file to point to the build output-->
+
+<echo file="${app.bootstrap.css}">
+/*
+ * This file is generated by Sencha Cmd and should NOT be edited. It redirects
+ * to the most recently built CSS file for the application to allow index.html
+ * in the development directory to load properly (i.e., "dev mode").
+ */
+@import '${app.out.css.path}';
+</echo>
+     </target>
+
+     <target name="-compass-compile" depends="-compile-sass">
+        <property name="compass.compile.force" value="true"/>
+        <x-compass-compile
+            dir="${build.dir}"
+            trace="true"
+            boring="false"
+            force="${compass.compile.force}"
+            sassdir="${compass.sass.dir}"
+            cssdir="${compass.css.dir}"
+            config="${compass.config.file}"/>
+     </target>
+
+     <target name="-compile-slicer-sass" depends="-init-compiler">
+        <x-compile refid="${compiler.ref.id}">
+            <![CDATA[
+                restore
+                    page
+                and
+                include
+                    -all
+                and
+                sass
+                    +class-name-vars
+                    +etc
+                    +vars
+                    +rules
+                    -variable=$image-search-path:'${image.search.path}'
+                    -variable=$theme-name: '${app.theme}' !default
+                    -output=${app.example.scss}
+                and
+                restore
+                    page
+                and
+                sass
+                    +ruby
+                    -output=${app.out.ruby}
+            ]]>
+        </x-compile>
+
+        <x-get-relative-path
+            from="${app.example.dir}"
+            to="${app.example.css}"
+            property="app.example.css.path"
+            />
+        
+<!--update the app's example to point to the build output-->
+<echo file="${app.example.dir}/example.css">
+/*
+ * This file is generated by Sencha Cmd and should NOT be edited. It redirects
+ * to the most recently built CSS file for the application to allow theme.html
+ * to load properly for image slicing (required to support non-CSS3 browsers
+ * such as IE9 and below).
+ */
+@import '${app.example.css.path}';
+</echo>         
+     </target>
+
+     <target name="-compass-compile-slicer-css" depends="-compile-slicer-sass">
+        <property name="compass.compile.force" value="true"/>
+        <x-compass-compile
+            dir="${build.dir}"
+            trace="true"
+            boring="false"
+            force="${compass.compile.force}"
+            sassdir="${compass.sass.dir}"
+            cssdir="${compass.css.dir}"
+            config="${compass.config.file}"/>
+     </target>
+
     <!--
     Build SASS
     -->
     <target name="-before-sass"/>
     <target name="-sass">
-        <x-compass-compile
-            dir="${build.dir}"
-            trace="true"
-            boring="true"
-            force="true"
-            sassdir="${compass.sass.dir}"
-            cssdir="${compass.css.dir}"
-            config="${compass.config.file}"/>
+        <x-ant-call target="-compass-compile"/>
 
         <macrodef name="x-compress-css-files">
             <attribute name="dir"/>
@@ -344,165 +416,136 @@ this file in most cases.
                               preprocess="${build.css.preprocess}"
                               compress="${build.css.compress}"/>
                 
-        <!--
-        app.out.css.path is relative to the app output index.html file
-        -->
-        <x-get-relative-path
-            from="${app.dir}"
-            to="${app.out.css}"
-            property="app.out.css.path"
-            />
-
-        <x-get-relative-path
-            from="${app.example.dir}"
-            to="${app.example.css}"
-            property="app.example.css.path"
-            />
-        
-<!--update the application's bootstrap.css file to point to the build output-->
-
-<echo file="${app.bootstrap.css}">
-/*
- * This file is generated by Sencha Cmd and should NOT be edited. It redirects
- * to the most recently built CSS file for the application to allow index.html
- * in the development directory to load properly (i.e., "dev mode").
- */
-@import '${app.out.css.path}';
-</echo>
-
-<!--update the app's example to point to the build output-->
-<echo file="${app.example.dir}/example.css">
-/*
- * This file is generated by Sencha Cmd and should NOT be edited. It redirects
- * to the most recently built CSS file for the application to allow theme.html
- * to load properly for image slicing (required to support non-CSS3 browsers
- * such as IE9 and below).
- */
-@import '${app.example.css.path}';
-</echo>
-                
     </target>
     <target name="-after-sass"/>
     <target name="sass" depends="init" unless="skip.sass"
             description="Builds only the SASS files using Compass">
-        <antcall target="-before-sass"/>
-        <antcall target="-sass"/>
-        <antcall target="-after-sass"/>
+        <x-ant-call target="-before-sass"/>
+        <x-ant-call target="-sass"/>
+        <x-ant-call target="-after-sass"/>
+    </target>
+
+    <target name="-compile-resources" depends="-init-compiler">
+        <x-compile refid="${compiler.ref.id}">
+            <![CDATA[
+                resources
+                    -excludes=-all*.css
+                    -out=${build.resources.dir}
+            ]]>
+        </x-compile>
     </target>
 
     <!--
-    Inherit Resources
+    Copy Resources
     -->
     <target name="-before-inherit-resources"/>
+    <target name="-before-copy-resources"/>
+    <target name="-after-copy-resources"/>
     <target name="-after-inherit-resources"/>
-    <target name="inherit-resources" depends="init"
-            description="Performs the resource folder inheritance from base theme(s)">
-        <antcall target="-before-inherit-resources"/>
-
-        <if>
-            <isset property="theme.base.packages"/>
-            <then>
-                <for list="${theme.base.packages}" param="base">
-                    <sequential>
-                        <local name="package-name"/>
-                        <basename property="package-name" file="@{base}"/>
-                        <echo>Merging base package resources for ${package-name} from @{base}/resources</echo>
-                        
-                        <if>
-                            <available file="@{base}/resources" type="dir" />
-                            <then>
-                                <copy todir="${build.resources.dir}" overwrite="true">
-                                    <fileset dir="@{base}/resources"
-                                        includes="**/*"
-                                        excludes="@{base}-all*.css"/>
-                                </copy>
-                            </then>
-                        </if>
-                    </sequential>
-                </for>
-            </then>
-        </if>
-
-        <if>
-            <isset property="app.requires.packages"/>
-            <then>
-                <for list="${app.requires.packages}" param="base">
-                    <sequential>
-                        <local name="package-name"/>
-                        <basename property="package-name" file="@{base}"/>
-                        <echo>Copying required package resources for ${package-name} from @{base}/resources</echo>
-                        
-                        <if>
-                            <available file="@{base}/resources" type="dir" />
-                            <then>
-                                <copy todir="${build.resources.dir}/${package-name}">
-                                    <fileset dir="@{base}/resources" 
-                                        includes="**/*"
-                                        excludes="@{base}-all*.css"/>
-                                </copy>
-                            </then>
-                        </if>
-                    </sequential>
-                </for>
-            </then>
-        </if>
-
-        <antcall target="-after-inherit-resources"/>
+    <target name="copy-resources" depends="init"
+            description="Copy theme resources to folder">
+        <x-ant-call target="-before-inherit-resources"/>
+        <x-ant-call target="-before-copy-resources"/>
+        <x-ant-call target="-compile-resources"/>
+        <x-ant-call target="-after-copy-resources"/>
+        <x-ant-call target="-after-inherit-resources"/>
     </target>
+    
+    
+    <macrodef name="x-run-bootstrap">
+        <attribute name="file"/>
+        <attribute name="basedir"/>
+        <sequential>
+<echo file="@{file}">
+/**
+ * This file is generated by Sencha Cmd and should NOT be edited.  It is 
+ * provided to support globbing requires, custom xtypes, and other 
+ * metadata-driven class system features 
+ */
+</echo>
+            <x-compile refid="${compiler.ref.id}">
+                <![CDATA[
+                    union
+                        -not
+                        -tag=core
+                    and
+                    metadata
+                        +append
+                        --base-path=@{basedir}
+                        +loader-paths
+                        -jsonp=Ext.Loader.addClassPathMappings
+                        -out=@{file}
+                    and
+                    exclude
+                        -tag=framework
+                    and
+                    include
+                        -namespace=Ext.ux
+                    and
+                    metadata
+                        --base-path=@{basedir}
+                        +alternates
+                        +append
+                        -out=@{file}
+                    and
+                    metadata
+                        --base-path=@{basedir}
+                        +alias
+                        +append
+                        -out=@{file}
+                    and
+                    union
+                        -tag=overrides
+                    and
+                    metadata
+                        --base-path=@{basedir}
+                        +append
+                        +filenames
+                        -tpl=Ext.Loader.loadScript("{0}");
+                        -out=@{file}
+                ]]>
+            </x-compile>
+        </sequential>
+    </macrodef>
     
     <!--
     Slice
     -->
     <target name="-before-slice"/>
-    <target name="-after-slice"/>
-    <target name="slice" depends="init" unless="skip.slice"
-            description="Slices CSS3 theme to produce non-CSS3 images and sprites">
-        <antcall target="-before-slice"/>
-
+    <target name="-slice">
+        <x-ant-call target="-compass-compile-slicer-css"/>
+        <x-run-bootstrap file="${bootstrap.example.js}" 
+                         basedir="${bootstrap.base.path}"/>
+       
         <echo>Capture theme image to ${build.capture.png}</echo>
         <x-sencha-command>
-            theme
-                capture
-                    -page=${app.example.theme.html}
-                    -image=${build.capture.png}
-                    -manifest=${build.capture.json}
+            <![CDATA[
+                theme
+                    capture
+                        -page=${app.example.theme.html}
+                        -image=${build.capture.png}
+                        -manifest=${build.capture.json}
+            ]]>
         </x-sencha-command>
 
         <echo>Slicing theme images to ${build.resources.dir}</echo>
         <x-sencha-command>
-            fs
-                slice
-                    ${build.slice.options}
-                    -image=${build.capture.png}
-                    -manifest=${build.capture.json}
-                    -out=${build.resources.dir}
+            <![CDATA[
+                fs
+                    slice
+                        ${build.slice.options}
+                        -image=${build.capture.png}
+                        -manifest=${build.capture.json}
+                        -out=${build.resources.dir}
+            ]]>
         </x-sencha-command>
-
-        <antcall target="-after-slice"/>
     </target>
-    
-    <!--
-    Copy Resources
-    -->
-    <target name="-before-copy-resources"/>
-    <target name="-after-copy-resources"/>
-    <target name="copy-resources" depends="init"
-            description="Copy theme resources to folder">
-        <antcall target="-before-copy-resources"/>
-
-        <if>
-            <available file="${build.resources.dir}"/>
-            <then>
-                <copy todir="${build.resources.dir}" overwrite="true">
-                    <fileset 
-                        dir="${app.resources.dir}" 
-                        includes="**/*" 
-                        excludes="**/Readme.md"/>
-                </copy>
-            </then>
-        </if>
-        
-        <antcall target="-after-copy-resources"/>
+    <target name="-after-slice"/>
+    <target name="slice" depends="init" unless="skip.slice"
+            description="Slices CSS3 theme to produce non-CSS3 images and sprites">
+        <x-ant-call target="-before-slice"/>
+        <x-ant-call target="-slice"/>
+        <x-ant-call target="-after-slice"/>
     </target>
     
     <!--
@@ -522,142 +565,97 @@ this file in most cases.
     <target name="-after-refresh-theme"/>
     <target name="refresh-theme" depends="init" unless="skip.theme"
             description="Executes 'sencha package build' for the specified theme package name">
-        <antcall target="-before-refresh-theme"/>
-        <antcall target="-refresh-theme"/>
-        <antcall target="-after-refresh-theme"/>
+        <x-ant-call target="-before-refresh-theme"/>
+        <x-ant-call target="-refresh-theme"/>
+        <x-ant-call target="-after-refresh-theme"/>
     </target>
 
     <!--
     Build Page
     -->
     <target name="-before-page"/>
-    <target name="-page">
-        
-<echo file="${bootstrap.example.js}">
-/**
- * This file is generated by Sencha Cmd and should NOT be edited.  It is 
- * provided to support globbing requires, custom xtypes, and other 
- * metadata-driven class system features 
- */
-</echo>
-
+    <target name="-page" depends="-init-compiler">
         <!--run compile command to generate concatenated output files for js and scss-->
-        <x-sencha-command dir="${app.dir}">
-            # base build command
-            
-            compile
-                -options=${build.options}
-                page
-                    -name=full-page
-                    -in=${app.page.file}
-                    -out=${build.page.file}
-                    -classes=${build.classes.name}
-                    -stylesheet=${app.out.css.rel}  
-                    ${build.page.options}
-                and
+        <x-compile refid="${compiler.ref.id}">
+            <![CDATA[
                 restore
-                    full-page     
-                and
-                ${build.operations}
+                    page
                 and
                 ${build.optimize}
-                and
-                save
-                    page
-            
-            # page command
-
                 and
                 concat
                     ${build.compression}
                     -out=${build.classes.file}
                     ${build.concat.options}
-
-            # bootstrap
-             ${build.theme.commands}
-            
-        </x-sencha-command>
+            ]]>
+        </x-compile>
     </target>
     <target name="-after-page"/>
     <target name="page" depends="init" unless="skip.page"
             description="Builds only the application's HTML page">
-        <antcall target="-before-page"/>
-        <antcall target="-page"/>
-        <antcall target="-after-page"/>
+        <x-ant-call target="-before-page"/>
+        <x-ant-call target="-page"/>
+        <x-ant-call target="-after-page"/>
     </target>
-
-
-    <!--
-    Refresh
-    -->
-    <target name="-before-refresh"/>
-    <target name="-refresh">
-        <property name="args.metadatafile" value="${app.dir}/bootstrap.js"/>
-        <property name="args.basepath" value="${app.dir}"/>
-<echo file="${args.metadatafile}">
-/**
- * This file is generated by Sencha Cmd and should NOT be edited.  It is 
- * provided to support globbing requires, custom xtypes, and other 
- * metadata-driven class system features 
- */
-</echo>
-        <x-sencha-command>
-            compile
-                exclude
-                    -tag=core
-                and
-                metadata
-                    +append
-                    --base-path=${args.basepath}
-                    +loader-paths
-                    -jsonp=Ext.Loader.addClassPathMappings
-                    -out=${args.metadatafile}
-                and
-                exclude
-                    -tag=framework
-                and
-                include
-                    -namespace=Ext.ux
-                and
-                metadata
-                    --base-path=${args.basepath}
-                    +alternates
-                    +append
-                    -out=${args.metadatafile}
-                and
-                metadata
-                    --base-path=${args.basepath}
-                    +alias
-                    +append
-                    -out=${args.metadatafile}
-                and
-                union
-                    -tag=packageOverrides
-                and
-                metadata
-                    --base-path=${args.basepath}
-                    +append
-                    +filenames
-                    -tpl=Ext.Loader.loadScript("{0}");
-                    -out=${args.metadatafile}
-                    
-        </x-sencha-command>
-    </target>
-    <target name="-after-refresh"/>
-    <target name="refresh"
-            depends="init,-before-refresh,-refresh,-after-refresh"
-            description="Builds the application"/>
 
     <!--
     Build
     -->
     <target name="-before-build"/>
-    <target name="-build" depends="refresh,page,inherit-resources,copy-resources,sass,slice"/>
+    <target name="-build" depends="refresh,page,copy-resources,sass,slice"/>
     <target name="-after-build"/>
     <target name="build"
             depends="init,-before-build,-build,-after-build"
             description="Builds the application"/>
 
+    <!--
+    Refresh
+    -->
+    <target name="-before-refresh"/>
+    <target name="-refresh" depends="-init-compiler">
+        <property name="args.metadatafile" value="${app.dir}/bootstrap.js"/>
+        <property name="args.basepath" value="${app.dir}"/>
+        <x-run-bootstrap file="${args.metadatafile}"
+                         basedir="${args.basepath}"/>
+    </target>
+    <target name="-after-refresh"/>
+    <target name="refresh"
+            depends="init,-before-refresh,-refresh,-after-refresh"
+            description="Builds the application"/>
+    
+    <target name="-watch-impl" depends="-refresh,-compile-resources,-compass-compile"/>
+    
+    <target name="-before-watch" depends="init"/>
+    <target name="-watch" depends="app-build-impl.build,-compile-resources,-compass-compile">
+        <if>
+            <equals arg1="${enable.compass.watch}" arg2="true"/>
+            <then>
+                <x-compass-watch
+                    dir="${build.dir}"
+                    trace="true"
+                    boring="false"
+                    force="${compass.compile.force}"
+                    sassdir="${compass.sass.dir}"
+                    cssdir="${compass.css.dir}"
+                    config="${compass.config.file}"
+                    fork="true"/>
+            </then>
+        </if>
+        <x-watch compilerRef="${compiler.ref.id}" targets="${watch.targets}"/>
+    </target>
+    <target name="-after-watch" depends="init"/>
+    <target name="watch">
+        <property name="skip.sass" value="true"/>
+        <property name="skip.slice" value="true"/>
+        <property name="build.optimize" value=""/>
+        <property name="compass.compile.force" value="false"/>
+        <property name="enable.compass.watch" value="false"/>
+        <property name="watch.targets" value="-watch-impl"/>
+        <x-ant-call target="-before-watch"/>
+        <x-ant-call target="-watch"/>
+        <x-ant-call target="-after-watch"/>
+    </target>
+    
     <!--
     environment setters
     -->
